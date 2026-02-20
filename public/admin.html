@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vault Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0a0a0a; --surface:#111; --surface2:#161616; --border:#1e1e1e;
+      --accent:#c8ff00; --danger:#ff4444; --warn:#ffcc00;
+      --text:#e8e8e8; --muted:#555;
+    }
+    body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; }
+    body::before {
+      content:''; position:fixed; inset:0;
+      background-image:linear-gradient(rgba(200,255,0,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(200,255,0,0.02) 1px,transparent 1px);
+      background-size:40px 40px; pointer-events:none; z-index:0;
+    }
+
+    /* LOGIN */
+    #loginScreen {
+      position:fixed; inset:0; z-index:100; background:var(--bg);
+      display:flex; align-items:center; justify-content:center; flex-direction:column; gap:20px;
+    }
+    #loginScreen h1 { font-family:'Bebas Neue',sans-serif; font-size:52px; letter-spacing:5px; color:var(--accent); }
+    #loginScreen p { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:3px; color:var(--muted); text-transform:uppercase; }
+    .login-form { display:flex; flex-direction:column; gap:12px; width:320px; }
+    .login-form input { background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:'DM Mono',monospace; font-size:15px; padding:14px 16px; outline:none; letter-spacing:3px; text-align:center; }
+    .login-form input:focus { border-color:var(--accent); }
+    .btn-primary { background:var(--accent); color:#000; font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:3px; border:none; padding:14px; cursor:pointer; transition:opacity 0.15s; }
+    .btn-primary:hover { opacity:0.85; }
+    .login-error { font-family:'DM Mono',monospace; font-size:11px; color:var(--danger); text-align:center; letter-spacing:1px; min-height:16px; }
+
+    /* MAIN */
+    #adminUI { display:none; position:relative; z-index:1; max-width:900px; margin:0 auto; padding:40px 24px 80px; }
+
+    .admin-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; }
+    .admin-header h1 { font-family:'Bebas Neue',sans-serif; font-size:42px; letter-spacing:4px; }
+    .admin-header h1 span { color:var(--accent); }
+    .btn-logout { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; background:none; border:1px solid var(--border); color:var(--muted); padding:8px 16px; cursor:pointer; transition:all 0.15s; }
+    .btn-logout:hover { border-color:var(--danger); color:var(--danger); }
+
+    /* TABS */
+    .tabs { display:flex; gap:2px; margin-bottom:32px; border-bottom:1px solid var(--border); }
+    .tab { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; padding:12px 20px; cursor:pointer; color:var(--muted); border:none; background:none; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all 0.15s; }
+    .tab:hover { color:var(--text); }
+    .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .tab-badge { display:inline-block; background:var(--accent); color:#000; font-size:9px; padding:1px 6px; margin-left:6px; border-radius:0; vertical-align:middle; }
+
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* SECTION BOXES */
+    .section-box { background:var(--surface); border:1px solid var(--border); border-top:2px solid var(--accent); padding:24px; margin-bottom:28px; }
+    .section-box h2 { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:3px; color:var(--accent); margin-bottom:18px; }
+
+    /* FORMS */
+    .form-grid { display:grid; gap:12px; margin-bottom:14px; }
+    .form-grid.cols2 { grid-template-columns:1fr 1fr; }
+    .form-grid.cols3 { grid-template-columns:1fr 1fr 1fr; }
+    .form-grid.cols1 { grid-template-columns:1fr; }
+    .form-field { display:flex; flex-direction:column; gap:5px; }
+    .form-field label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+    .form-field input, .form-field textarea {
+      background:var(--bg); border:1px solid var(--border); color:var(--text);
+      font-family:'DM Mono',monospace; font-size:13px; padding:11px 13px; outline:none; transition:border-color 0.2s;
+    }
+    .form-field input:focus, .form-field textarea:focus { border-color:var(--accent); }
+    .form-field textarea { resize:vertical; min-height:70px; }
+
+    .btn-add { background:var(--accent); color:#000; font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:3px; border:none; padding:12px 28px; cursor:pointer; transition:opacity 0.15s; }
+    .btn-add:hover { opacity:0.85; }
+
+    /* FILTER */
+    .filter-bar { margin-bottom:14px; }
+    .filter-bar input { width:100%; background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:'DM Mono',monospace; font-size:13px; padding:10px 14px; outline:none; }
+    .filter-bar input:focus { border-color:var(--accent); }
+    .filter-bar input::placeholder { color:var(--muted); }
+
+    /* TABLE HEADER */
+    .list-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .list-header h3 { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; color:var(--text); }
+    .count-pill { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--muted); background:var(--surface); border:1px solid var(--border); padding:3px 10px; }
+
+    /* ROWS */
+    .item-list { display:flex; flex-direction:column; gap:2px; }
+    .item-row {
+      background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--warn);
+      padding:0; animation:fadeIn 0.2s ease forwards; opacity:0; overflow:hidden;
+    }
+    .item-row.history-row { border-left-color:var(--accent); }
+    .item-row.ann-row { border-left-color:var(--accent); }
+    .item-row.ann-row.inactive { border-left-color:#333; opacity:0.5; }
+
+    @keyframes fadeIn { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:translateX(0)} }
+
+    .row-main { padding:16px 20px; display:flex; align-items:center; gap:16px; }
+    .row-info { flex:1; min-width:0; }
+    .row-name { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; }
+    .row-sub { font-family:'DM Mono',monospace; font-size:11px; color:var(--accent); margin-top:2px; letter-spacing:0.5px; }
+    .row-meta { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); margin-top:3px; }
+    .row-est { font-family:'DM Mono',monospace; font-size:10px; color:#77aa00; margin-top:2px; }
+    .row-actions { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+
+    .btn-sm {
+      font-family:'DM Mono',monospace; font-size:9px; letter-spacing:1.5px; text-transform:uppercase;
+      padding:7px 12px; cursor:pointer; border:1px solid; background:none; transition:all 0.15s; white-space:nowrap;
+    }
+    .btn-edit { border-color:#333; color:var(--muted); }
+    .btn-edit:hover { border-color:var(--accent); color:var(--accent); }
+    .btn-deliver { border-color:rgba(200,255,0,0.3); color:var(--accent); }
+    .btn-deliver:hover { background:var(--accent); color:#000; }
+    .btn-deliver.confirming { border-color:var(--danger); color:var(--danger); animation:pulse 0.3s ease; }
+    .btn-delete { border-color:#333; color:var(--muted); }
+    .btn-delete:hover { border-color:var(--danger); color:var(--danger); }
+    .btn-delete.confirming { border-color:var(--danger); color:var(--danger); }
+    .btn-toggle { border-color:#333; color:var(--muted); }
+    .btn-toggle:hover { border-color:var(--accent); color:var(--accent); }
+    .btn-toggle.active-ann { border-color:var(--accent); color:var(--accent); }
+
+    @keyframes pulse { 0%{transform:scale(1)} 50%{transform:scale(1.04)} 100%{transform:scale(1)} }
+
+    /* EDIT PANEL */
+    .edit-panel {
+      background:var(--bg); border-top:1px solid var(--border);
+      padding:16px 20px; display:none;
+    }
+    .edit-panel.open { display:block; }
+    .edit-panel .form-grid { margin-bottom:10px; }
+    .edit-row-btns { display:flex; gap:8px; }
+    .btn-save { background:var(--accent); color:#000; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px; border:none; padding:8px 20px; cursor:pointer; text-transform:uppercase; }
+    .btn-cancel-edit { background:none; border:1px solid var(--border); color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px; padding:8px 16px; cursor:pointer; text-transform:uppercase; }
+    .btn-cancel-edit:hover { border-color:var(--muted); }
+
+    /* EMPTY */
+    .empty-state { text-align:center; padding:48px 20px; font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); letter-spacing:2px; background:var(--surface); border:1px dashed var(--border); text-transform:uppercase; }
+
+    /* TOAST */
+    .toast {
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(16px);
+      background:var(--accent); color:#000; font-family:'DM Mono',monospace; font-size:11px;
+      letter-spacing:2px; padding:11px 22px; z-index:999; opacity:0; transition:all 0.25s; pointer-events:none;
+    }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    .toast.error { background:var(--danger); color:#fff; }
+
+    /* ANN message text */
+    .ann-message { font-family:'DM Mono',monospace; font-size:12px; color:var(--text); line-height:1.5; }
+    .ann-status { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; padding:2px 8px; border:1px solid; margin-left:8px; }
+    .ann-status.on { color:var(--accent); border-color:rgba(200,255,0,0.3); }
+    .ann-status.off { color:var(--muted); border-color:#333; }
+
+    @media(max-width:600px) {
+      .form-grid.cols2,.form-grid.cols3 { grid-template-columns:1fr; }
+      .row-main { flex-wrap:wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <h1>VAULT</h1>
+  <p>Admin Access Required</p>
+  <div class="login-form">
+    <input id="passwordInput" type="password" placeholder="PASSWORD" />
+    <button class="btn-primary" onclick="doLogin()">ENTER VAULT</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminUI">
+  <div class="admin-header">
+    <h1>SUPPLIER<span>VAULT</span></h1>
+    <button class="btn-logout" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('suppliers')">Suppliers <span class="tab-badge" id="tabBadgeSuppliers">0</span></button>
+    <button class="tab" onclick="switchTab('announcements')">Announcements <span class="tab-badge" id="tabBadgeAnn">0</span></button>
+    <button class="tab" onclick="switchTab('history')">History <span class="tab-badge" id="tabBadgeHistory">0</span></button>
+  </div>
+
+  <!-- SUPPLIERS TAB -->
+  <div class="tab-panel active" id="panel-suppliers">
+    <div class="section-box">
+      <h2>+ Add Supplier</h2>
+      <div class="form-grid cols3">
+        <div class="form-field"><label>Supplier Name *</label><input id="newName" type="text" placeholder="e.g. John Smith" /></div>
+        <div class="form-field"><label>Product *</label><input id="newProduct" type="text" placeholder="e.g. 50x Blue Widgets" /></div>
+        <div class="form-field"><label>Est. Delivery Date</label><input id="newEstDelivery" type="date" /></div>
+      </div>
+      <div class="form-grid cols1">
+        <div class="form-field"><label>Note (optional)</label><input id="newNote" type="text" placeholder="Any extra info..." /></div>
+      </div>
+      <button class="btn-add" onclick="addSupplier()">ADD TO VAULT</button>
+    </div>
+
+    <div class="filter-bar">
+      <input id="supplierFilter" type="text" placeholder="Filter by name..." oninput="renderSuppliers()" />
+    </div>
+    <div class="list-header">
+      <h3>Active Orders</h3>
+      <span class="count-pill" id="supplierCount">0 on hold</span>
+    </div>
+    <div class="item-list" id="supplierList"></div>
+  </div>
+
+  <!-- ANNOUNCEMENTS TAB -->
+  <div class="tab-panel" id="panel-announcements">
+    <div class="section-box">
+      <h2>+ New Announcement</h2>
+      <div class="form-grid cols1">
+        <div class="form-field"><label>Message *</label><textarea id="newAnnMessage" placeholder="e.g. Shipments delayed this week due to public holiday..."></textarea></div>
+      </div>
+      <button class="btn-add" onclick="addAnnouncement()">POST ANNOUNCEMENT</button>
+    </div>
+    <div class="list-header">
+      <h3>Announcements</h3>
+      <span class="count-pill" id="annCount">0 active</span>
+    </div>
+    <div class="item-list" id="annList"></div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="tab-panel" id="panel-history">
+    <div class="filter-bar">
+      <input id="historyFilter" type="text" placeholder="Filter history by name..." oninput="renderHistory()" />
+    </div>
+    <div class="list-header">
+      <h3>Delivery History</h3>
+      <span class="count-pill" id="historyCount">0 delivered</span>
+    </div>
+    <div class="item-list" id="historyList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let adminToken  = sessionStorage.getItem('vaultToken') || null;
+  let suppliers   = [];
+  let history     = [];
+  let announcements = [];
+  let confirmMap  = {}; // id → 'deliver'|'delete'
+  let openEdit    = null;
+
+  if (adminToken) { showAdmin(); loadAll(); }
+
+  document.getElementById('passwordInput').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+
+  // ── AUTH ────────────────────────────────────────────────────────
+  async function doLogin() {
+    const password = document.getElementById('passwordInput').value;
+    const errEl    = document.getElementById('loginError');
+    errEl.textContent = '';
+    try {
+      const res  = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password}) });
+      const data = await res.json();
+      if (!res.ok) { errEl.textContent = '⚠ ' + (data.error || 'Wrong password'); document.getElementById('passwordInput').value=''; return; }
+      adminToken = data.token;
+      sessionStorage.setItem('vaultToken', adminToken);
+      showAdmin(); loadAll();
+    } catch { errEl.textContent = '⚠ Connection error'; }
+  }
+
+  async function doLogout() {
+    await fetch('/api/logout', { method:'POST', headers:{'x-admin-token':adminToken} }).catch(()=>{});
+    adminToken = null; sessionStorage.removeItem('vaultToken'); location.reload();
+  }
+
+  function showAdmin() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminUI').style.display     = 'block';
+  }
+
+  // ── TABS ────────────────────────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['suppliers','announcements','history'][i]===name));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id==='panel-'+name));
+  }
+
+  // ── LOAD ALL ────────────────────────────────────────────────────
+  async function loadAll() {
+    await Promise.all([loadSuppliers(), loadAnnouncements(), loadHistory()]);
+  }
+
+  async function loadSuppliers() {
+    try {
+      const res = await fetch('/api/admin/suppliers', { headers:{'x-admin-token':adminToken} });
+      if (res.status===401) { doLogout(); return; }
+      suppliers = await res.json();
+      renderSuppliers();
+    } catch { showToast('Failed to load suppliers','error'); }
+  }
+
+  async function loadAnnouncements() {
+    try {
+      const res = await fetch('/api/admin/announcements', { headers:{'x-admin-token':adminToken} });
+      announcements = await res.json();
+      renderAnnouncements();
+    } catch { showToast('Failed to load announcements','error'); }
+  }
+
+  async function loadHistory() {
+    try {
+      const res = await fetch('/api/admin/history', { headers:{'x-admin-token':adminToken} });
+      history = await res.json();
+      renderHistory();
+    } catch { showToast('Failed to load history','error'); }
+  }
+
+  // ── RENDER SUPPLIERS ────────────────────────────────────────────
+  function renderSuppliers() {
+    const filter = document.getElementById('supplierFilter').value.toLowerCase();
+    const list   = document.getElementById('supplierList');
+    const filtered = suppliers.filter(s => s.name.toLowerCase().includes(filter));
+
+    document.getElementById('supplierCount').textContent   = `${suppliers.length} on hold`;
+    document.getElementById('tabBadgeSuppliers').textContent = suppliers.length;
+    list.innerHTML = '';
+
+    if (!filtered.length) { list.innerHTML = `<div class="empty-state">No suppliers found</div>`; return; }
+
+    filtered.forEach((s, i) => {
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.id = `srow-${s.id}`;
+      row.style.animationDelay = `${i*35}ms`;
+
+      const added   = fmt(s.added_at);
+      const estHtml = s.est_delivery ? `<div class="row-est">📅 Est: ${fmtDate(s.est_delivery)}</div>` : '';
+      const noteHtml= s.note ? `<div class="row-meta">${escHtml(s.note)}</div>` : '';
+      const isDelConf = confirmMap[`del-${s.id}`];
+      const isEditing = openEdit === s.id;
+
+      row.innerHTML = `
+        <div class="row-main">
+          <div class="row-info">
+            <div class="row-name">${escHtml(s.name)}</div>
+            <div class="row-sub">${escHtml(s.product)}</div>
+            ${estHtml}${noteHtml}
+            <div class="row-meta">Added ${added}</div>
+          </div>
+          <div class="row-actions">
+            <button class="btn-sm btn-edit" onclick="toggleEdit(${s.id})">${isEditing ? 'Close' : 'Edit'}</button>
+            <button class="btn-sm btn-deliver ${isDelConf?'confirming':''}" onclick="handleDeliver(${s.id})">${isDelConf?'Confirm?':'Delivered'}</button>
+          </div>
+        </div>
+        <div class="edit-panel ${isEditing?'open':''}" id="edit-${s.id}">
+          <div class="form-grid cols3">
+            <div class="form-field"><label>Name</label><input id="eName-${s.id}" value="${escAttr(s.name)}" /></div>
+            <div class="form-field"><label>Product</label><input id="eProd-${s.id}" value="${escAttr(s.product)}" /></div>
+            <div class="form-field"><label>Est. Delivery</label><input type="date" id="eEst-${s.id}" value="${s.est_delivery?s.est_delivery.split('T')[0]:''}" /></div>
+          </div>
+          <div class="form-grid cols1">
+            <div class="form-field"><label>Note</label><input id="eNote-${s.id}" value="${escAttr(s.note||'')}" /></div>
+          </div>
+          <div class="edit-row-btns">
+            <button class="btn-save" onclick="saveEdit(${s.id})">Save Changes</button>
+            <button class="btn-cancel-edit" onclick="toggleEdit(${s.id})">Cancel</button>
+          </div>
+        </div>`;
+      list.appendChild(row);
+    });
+  }
+
+  // ── RENDER ANNOUNCEMENTS ────────────────────────────────────────
+  function renderAnnouncements() {
+    const list   = document.getElementById('annList');
+    const active = announcements.filter(a=>a.active).length;
+    document.getElementById('annCount').textContent     = `${active} active`;
+    document.getElementById('tabBadgeAnn').textContent  = announcements.length;
+    list.innerHTML = '';
+    if (!announcements.length) { list.innerHTML=`<div class="empty-state">No announcements yet</div>`; return; }
+    announcements.forEach((a,i) => {
+      const row = document.createElement('div');
+      row.className = `item-row ann-row ${a.active?'':'inactive'}`;
+      row.style.animationDelay=`${i*35}ms`;
+      const isDelConf = confirmMap[`ann-${a.id}`];
+      row.innerHTML = `
+        <div class="row-main">
+          <div class="row-info">
+            <div class="ann-message">${escHtml(a.message)}</div>
+            <div class="row-meta" style="margin-top:6px">${fmt(a.created_at)} &nbsp;<span class="ann-status ${a.active?'on':'off'}">${a.active?'Live':'Hidden'}</span></div>
+          </div>
+          <div class="row-actions">
+            <button class="btn-sm btn-toggle ${a.active?'active-ann':''}" onclick="toggleAnn(${a.id},${!a.active})">${a.active?'Hide':'Show'}</button>
+            <button class="btn-sm btn-delete ${isDelConf?'confirming':''}" onclick="deleteAnn(${a.id})">${isDelConf?'Confirm?':'Delete'}</button>
+          </div>
+        </div>`;
+      list.appendChild(row);
+    });
+  }
+
+  // ── RENDER HISTORY ──────────────────────────────────────────────
+  function renderHistory() {
+    const filter = document.getElementById('historyFilter').value.toLowerCase();
+    const list   = document.getElementById('historyList');
+    const filtered = history.filter(h => h.name.toLowerCase().includes(filter));
+    document.getElementById('historyCount').textContent    = `${history.length} delivered`;
+    document.getElementById('tabBadgeHistory').textContent = history.length;
+    list.innerHTML = '';
+    if (!filtered.length) { list.innerHTML=`<div class="empty-state">No delivery history yet</div>`; return; }
+    filtered.forEach((h,i) => {
+      const row = document.createElement('div');
+      row.className='item-row history-row';
+      row.style.animationDelay=`${i*30}ms`;
+      const isDelConf = confirmMap[`hist-${h.id}`];
+      row.innerHTML=`
+        <div class="row-main">
+          <div class="row-info">
+            <div class="row-name">${escHtml(h.name)}</div>
+            <div class="row-sub">${escHtml(h.product)}</div>
+            ${h.est_delivery?`<div class="row-est">Est was: ${fmtDate(h.est_delivery)}</div>`:''}
+            ${h.note?`<div class="row-meta">${escHtml(h.note)}</div>`:''}
+            <div class="row-meta">Added ${fmt(h.added_at)} → Delivered ${fmt(h.delivered_at)}</div>
+          </div>
+          <div class="row-actions">
+            <button class="btn-sm btn-delete ${isDelConf?'confirming':''}" onclick="deleteHistory(${h.id})">${isDelConf?'Confirm?':'Remove'}</button>
+          </div>
+        </div>`;
+      list.appendChild(row);
+    });
+  }
+
+  // ── SUPPLIER ACTIONS ────────────────────────────────────────────
+  async function addSupplier() {
+    const name        = document.getElementById('newName').value.trim();
+    const product     = document.getElementById('newProduct').value.trim();
+    const note        = document.getElementById('newNote').value.trim();
+    const est_delivery= document.getElementById('newEstDelivery').value || null;
+    if (!name||!product) { showToast('Name and product required','error'); return; }
+    try {
+      const res = await fetch('/api/admin/suppliers',{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify({name,product,note,est_delivery})});
+      if (!res.ok) { showToast('Failed to add','error'); return; }
+      document.getElementById('newName').value='';
+      document.getElementById('newProduct').value='';
+      document.getElementById('newNote').value='';
+      document.getElementById('newEstDelivery').value='';
+      showToast(`${name} added ✓`);
+      await loadSuppliers();
+    } catch { showToast('Connection error','error'); }
+  }
+
+  function toggleEdit(id) {
+    openEdit = openEdit===id ? null : id;
+    renderSuppliers();
+  }
+
+  async function saveEdit(id) {
+    const name    = document.getElementById(`eName-${id}`).value.trim();
+    const product = document.getElementById(`eProd-${id}`).value.trim();
+    const note    = document.getElementById(`eNote-${id}`).value.trim();
+    const est     = document.getElementById(`eEst-${id}`).value || null;
+    if (!name||!product) { showToast('Name and product required','error'); return; }
+    try {
+      const res = await fetch(`/api/admin/suppliers/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify({name,product,note,est_delivery:est})});
+      if (!res.ok) { showToast('Failed to save','error'); return; }
+      openEdit=null; showToast('Saved ✓'); await loadSuppliers();
+    } catch { showToast('Connection error','error'); }
+  }
+
+  async function handleDeliver(id) {
+    const key=`del-${id}`;
+    if (!confirmMap[key]) {
+      confirmMap[key]=true; renderSuppliers();
+      setTimeout(()=>{ if(confirmMap[key]){delete confirmMap[key];renderSuppliers();} },3000);
+      return;
+    }
+    delete confirmMap[key];
+    try {
+      const res = await fetch(`/api/admin/suppliers/${id}`,{method:'DELETE',headers:{'x-admin-token':adminToken}});
+      if (!res.ok) { showToast('Failed','error'); return; }
+      const s = suppliers.find(x=>x.id===id);
+      showToast(`${s?.name||'Supplier'} marked delivered ✓`);
+      await Promise.all([loadSuppliers(),loadHistory()]);
+    } catch { showToast('Connection error','error'); }
+  }
+
+  // ── ANNOUNCEMENT ACTIONS ────────────────────────────────────────
+  async function addAnnouncement() {
+    const message = document.getElementById('newAnnMessage').value.trim();
+    if (!message) { showToast('Message required','error'); return; }
+    try {
+      const res = await fetch('/api/admin/announcements',{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify({message})});
+      if (!res.ok) { showToast('Failed','error'); return; }
+      document.getElementById('newAnnMessage').value='';
+      showToast('Announcement posted ✓');
+      await loadAnnouncements();
+    } catch { showToast('Connection error','error'); }
+  }
+
+  async function toggleAnn(id, active) {
+    try {
+      await fetch(`/api/admin/announcements/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify({active})});
+      await loadAnnouncements();
+    } catch { showToast('Connection error','error'); }
+  }
+
+  async function deleteAnn(id) {
+    const key=`ann-${id}`;
+    if (!confirmMap[key]) {
+      confirmMap[key]=true; renderAnnouncements();
+      setTimeout(()=>{ if(confirmMap[key]){delete confirmMap[key];renderAnnouncements();} },3000);
+      return;
+    }
+    delete confirmMap[key];
+    try {
+      await fetch(`/api/admin/announcements/${id}`,{method:'DELETE',headers:{'x-admin-token':adminToken}});
+      showToast('Deleted ✓'); await loadAnnouncements();
+    } catch { showToast('Connection error','error'); }
+  }
+
+  // ── HISTORY ACTIONS ─────────────────────────────────────────────
+  async function deleteHistory(id) {
+    const key=`hist-${id}`;
+    if (!confirmMap[key]) {
+      confirmMap[key]=true; renderHistory();
+      setTimeout(()=>{ if(confirmMap[key]){delete confirmMap[key];renderHistory();} },3000);
+      return;
+    }
+    delete confirmMap[key];
+    try {
+      await fetch(`/api/admin/history/${id}`,{method:'DELETE',headers:{'x-admin-token':adminToken}});
+      showToast('Record removed ✓'); await loadHistory();
+    } catch { showToast('Connection error','error'); }
+  }
+
+  // ── HELPERS ─────────────────────────────────────────────────────
+  function fmt(ts) {
+    if (!ts) return '—';
+    return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  }
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  }
+
+  let toastTimer;
+  function showToast(msg, type='') {
+    const el=document.getElementById('toast');
+    el.textContent=msg; el.className='toast'+(type?' '+type:'');
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function escAttr(str) { return escHtml(str); }
+</script>
+</body>
+</html>
