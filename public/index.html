@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Supplier Vault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0a0a0a;
+      --surface:    #111111;
+      --border:     #1e1e1e;
+      --accent:     #c8ff00;
+      --text:       #e8e8e8;
+      --muted:      #444;
+      --on-hold-c:  #ffcc00;
+      --delivered-c:#c8ff00;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(200,255,0,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(200,255,0,0.025) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 660px;
+      padding: 64px 24px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 52px;
+    }
+
+    .vault-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(60px, 14vw, 104px);
+      letter-spacing: 8px;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .vault-title span { color: var(--accent); }
+
+    .vault-line {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      margin: 10px 0 12px;
+    }
+
+    .subtitle {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .search-wrap {
+      position: relative;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    #searchInput {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom: 2px solid var(--accent);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 17px;
+      padding: 18px 56px 18px 22px;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      letter-spacing: 1px;
+      caret-color: var(--accent);
+    }
+
+    #searchInput:focus {
+      background: #141414;
+      border-color: var(--accent);
+    }
+
+    #searchInput::placeholder { color: var(--muted); }
+
+    .search-icon {
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-size: 20px;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .search-hint {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 36px;
+      text-transform: uppercase;
+    }
+
+    #results {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .state-msg {
+      text-align: center;
+      padding: 48px 20px;
+    }
+
+    .state-msg .icon {
+      font-size: 36px;
+      margin-bottom: 14px;
+      opacity: 0.2;
+    }
+
+    .state-msg p {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .state-msg strong { color: #555; }
+
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      animation: slideIn 0.18s ease forwards;
+      opacity: 0;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-accent-bar { height: 3px; width: 100%; }
+    .card-accent-bar.on_hold   { background: var(--on-hold-c); }
+    .card-accent-bar.delivered { background: var(--delivered-c); }
+
+    .card-body { padding: 22px 26px 20px; }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .supplier-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      letter-spacing: 3px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .status-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border: 1px solid;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .status-badge.on_hold {
+      color: var(--on-hold-c);
+      border-color: rgba(255,204,0,0.25);
+      background: rgba(255,204,0,0.07);
+    }
+
+    .status-badge.delivered {
+      color: var(--delivered-c);
+      border-color: rgba(200,255,0,0.25);
+      background: rgba(200,255,0,0.07);
+    }
+
+    .product-row {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .product-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .product-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--accent);
+      letter-spacing: 1px;
+    }
+
+    .note-row {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #555;
+      font-style: italic;
+    }
+
+    .card-footer {
+      border-top: 1px solid var(--border);
+      padding: 10px 26px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #2a2a2a;
+    }
+
+    .admin-link {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #1c1c1c;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: color 0.2s;
+      z-index: 10;
+    }
+    .admin-link:hover { color: #333; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="vault-title">SUPPLIER<span>VAULT</span></div>
+      <div class="vault-line"></div>
+      <p class="subtitle">Order Status Tracker</p>
+    </header>
+
+    <div class="search-wrap">
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="Type your name..."
+        autocomplete="off"
+        spellcheck="false"
+        autofocus
+      />
+      <span class="search-icon">⌕</span>
+    </div>
+    <p class="search-hint">Search to see your order status</p>
+
+    <div id="results">
+      <div class="state-msg">
+        <div class="icon">◎</div>
+        <p>Enter your name above</p>
+      </div>
+    </div>
+  </div>
+
+  <a href="/admin.html" class="admin-link">admin</a>
+
+  <script>
+    const input   = document.getElementById('searchInput');
+    const results = document.getElementById('results');
+    let debounceTimer;
+    let lastQuery = '';
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const val = input.value.trim();
+
+      if (!val) {
+        lastQuery = '';
+        results.innerHTML = `
+          <div class="state-msg">
+            <div class="icon">◎</div>
+            <p>Enter your name above</p>
+          </div>`;
+        return;
+      }
+
+      debounceTimer = setTimeout(() => doSearch(val), 250);
+    });
+
+    async function doSearch(q) {
+      if (q === lastQuery) return;
+      lastQuery = q;
+
+      try {
+        const res  = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+
+        if (input.value.trim() !== q) return; // stale
+
+        results.innerHTML = '';
+
+        if (!data.length) {
+          results.innerHTML = `
+            <div class="state-msg">
+              <div class="icon">◎</div>
+              <p>No results for <strong>"${escHtml(q)}"</strong></p>
+            </div>`;
+          return;
+        }
+
+        data.forEach((s, i) => {
+          const card = document.createElement('div');
+          card.className = 'result-card';
+          card.style.animationDelay = `${i * 55}ms`;
+
+          const statusLabel = s.status === 'on_hold' ? 'On Hold' : 'Delivered';
+          const date = new Date(s.added_at).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric'
+          });
+
+          card.innerHTML = `
+            <div class="card-accent-bar ${escHtml(s.status)}"></div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="supplier-name">${escHtml(s.name)}</div>
+                <span class="status-badge ${escHtml(s.status)}">${statusLabel}</span>
+              </div>
+              <div class="product-row">
+                <span class="product-label">Product</span>
+                <span class="product-value">${escHtml(s.product)}</span>
+              </div>
+              ${s.note ? `<div class="note-row">${escHtml(s.note)}</div>` : ''}
+            </div>
+            <div class="card-footer">Added ${date}</div>
+          `;
+          results.appendChild(card);
+        });
+      } catch {
+        results.innerHTML = `<div class="state-msg"><p>Connection error — try again.</p></div>`;
+      }
+    }
+
+    function escHtml(str) {
+      return String(str).replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
+      );
+    }
+  </script>
+</body>
+</html>
