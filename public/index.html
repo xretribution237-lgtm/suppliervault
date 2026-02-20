@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Supplier Vault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0a;
+      --surface:   #111111;
+      --border:    #222222;
+      --accent:    #c8ff00;
+      --accent2:   #ff6b35;
+      --text:      #e8e8e8;
+      --muted:     #555;
+      --on-hold:   #ffcc00;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px;
+    }
+
+    /* Background grid texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(200,255,0,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(200,255,0,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .vault-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(56px, 12vw, 96px);
+      letter-spacing: 6px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .vault-title span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* Search box */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 40px;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 16px;
+      padding: 18px 60px 18px 22px;
+      outline: none;
+      transition: border-color 0.2s;
+      letter-spacing: 1px;
+    }
+
+    .search-wrap input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-wrap input::placeholder {
+      color: var(--muted);
+    }
+
+    .search-icon {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 18px;
+      pointer-events: none;
+    }
+
+    /* Results */
+    #results {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--on-hold);
+      padding: 22px 26px;
+      animation: slideIn 0.2s ease forwards;
+      opacity: 0;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card .supplier-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 2px;
+      color: var(--text);
+    }
+
+    .result-card .product-line {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--accent);
+      margin-top: 4px;
+      letter-spacing: 1px;
+    }
+
+    .result-card .meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      background: rgba(255,204,0,0.1);
+      color: var(--on-hold);
+      border: 1px solid rgba(255,204,0,0.2);
+    }
+
+    .result-card .note-text {
+      font-size: 13px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .result-card .date-text {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: #333;
+      margin-top: 10px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    .empty-icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+
+    /* Admin link */
+    .admin-link {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #222;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    .admin-link:hover { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="vault-title">SUPPLIER<span>VAULT</span></div>
+      <p class="subtitle">Order Tracking System</p>
+    </header>
+
+    <div class="search-wrap">
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="Search your name..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <span class="search-icon">⌕</span>
+    </div>
+
+    <div id="results"></div>
+  </div>
+
+  <a href="/admin.html" class="admin-link">admin</a>
+
+  <script>
+    const input   = document.getElementById('searchInput');
+    const results = document.getElementById('results');
+    let debounceTimer;
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(doSearch, 280);
+    });
+
+    async function doSearch() {
+      const q = input.value.trim();
+      results.innerHTML = '';
+      if (!q) return;
+
+      try {
+        const res  = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+
+        if (!data.length) {
+          results.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">◎</div>
+              No supplier found for "<strong>${escHtml(q)}</strong>"
+            </div>`;
+          return;
+        }
+
+        data.forEach((s, i) => {
+          const card = document.createElement('div');
+          card.className = 'result-card';
+          card.style.animationDelay = `${i * 60}ms`;
+
+          const date = new Date(s.added_at).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric'
+          });
+
+          card.innerHTML = `
+            <div class="supplier-name">${escHtml(s.name)}</div>
+            <div class="product-line">⬡ ${escHtml(s.product)}</div>
+            <div class="meta">
+              <span class="badge">On Hold</span>
+              ${s.note ? `<span class="note-text">${escHtml(s.note)}</span>` : ''}
+            </div>
+            <div class="date-text">Added ${date}</div>
+          `;
+          results.appendChild(card);
+        });
+      } catch (err) {
+        results.innerHTML = `<div class="empty-state">Error loading results.</div>`;
+      }
+    }
+
+    function escHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+  </script>
+</body>
+</html>

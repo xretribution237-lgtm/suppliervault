@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vault Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0a0a0a;
+      --surface:  #111;
+      --surface2: #161616;
+      --border:   #222;
+      --accent:   #c8ff00;
+      --danger:   #ff4444;
+      --text:     #e8e8e8;
+      --muted:    #555;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(200,255,0,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(200,255,0,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── LOGIN SCREEN ───────────────────────────────────────────── */
+    #loginScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    #loginScreen h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 52px;
+      letter-spacing: 5px;
+      color: var(--accent);
+    }
+
+    #loginScreen p {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 320px;
+    }
+
+    .login-form input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      padding: 14px 16px;
+      outline: none;
+      letter-spacing: 3px;
+      text-align: center;
+    }
+
+    .login-form input:focus { border-color: var(--accent); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 3px;
+      border: none;
+      padding: 14px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-primary:hover { opacity: 0.85; }
+
+    .login-error {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--danger);
+      text-align: center;
+      letter-spacing: 1px;
+      min-height: 16px;
+    }
+
+    /* ── MAIN ADMIN UI ─────────────────────────────────────────── */
+    #adminUI {
+      display: none;
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 48px;
+    }
+
+    .admin-header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 48px;
+      letter-spacing: 4px;
+    }
+
+    .admin-header h1 span { color: var(--accent); }
+
+    .btn-logout {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── ADD FORM ──────────────────────────────────────────────── */
+    .add-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 2px solid var(--accent);
+      padding: 28px;
+      margin-bottom: 40px;
+    }
+
+    .add-section h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 3px;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .form-row.single { grid-template-columns: 1fr; }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-field label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .form-field input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-field input:focus { border-color: var(--accent); }
+
+    .btn-add {
+      background: var(--accent);
+      color: #000;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 16px;
+      letter-spacing: 3px;
+      border: none;
+      padding: 13px 32px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.15s;
+    }
+
+    .btn-add:hover { opacity: 0.85; }
+
+    /* ── SUPPLIERS TABLE ───────────────────────────────────────── */
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .table-header h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 3px;
+      color: var(--text);
+    }
+
+    .count-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+    }
+
+    #supplierList {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .supplier-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid #ffcc00;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      animation: fadeIn 0.2s ease forwards;
+      opacity: 0;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-6px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .supplier-row .info { flex: 1; min-width: 0; }
+
+    .supplier-row .s-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 24px;
+      letter-spacing: 2px;
+    }
+
+    .supplier-row .s-product {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      margin-top: 2px;
+      letter-spacing: 1px;
+    }
+
+    .supplier-row .s-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .supplier-row .s-date {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .btn-deliver {
+      background: none;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 9px 16px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+
+    .btn-deliver:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-deliver.confirming {
+      border-color: var(--danger);
+      color: var(--danger);
+      animation: pulse 0.4s ease;
+    }
+
+    @keyframes pulse {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--accent);
+      color: #000;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 2px;
+      padding: 12px 24px;
+      z-index: 999;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .search-admin {
+      margin-bottom: 16px;
+    }
+
+    .search-admin input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      padding: 11px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-admin input:focus { border-color: var(--accent); }
+    .search-admin input::placeholder { color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN SCREEN ─────────────────────────────────────────────── -->
+<div id="loginScreen">
+  <h1>VAULT</h1>
+  <p>Admin Access Required</p>
+  <div class="login-form">
+    <input id="passwordInput" type="password" placeholder="PASSWORD" />
+    <button class="btn-primary" onclick="doLogin()">ENTER VAULT</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ── ADMIN UI ──────────────────────────────────────────────────── -->
+<div id="adminUI">
+  <div class="admin-header">
+    <h1>SUPPLIER<span>VAULT</span> <span style="font-size:18px;color:var(--muted);letter-spacing:1px;">ADMIN</span></h1>
+    <button class="btn-logout" onclick="doLogout()">Logout</button>
+  </div>
+
+  <!-- Add Supplier -->
+  <div class="add-section">
+    <h2>+ ADD SUPPLIER</h2>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Supplier Name</label>
+        <input id="newName" type="text" placeholder="e.g. John Smith" />
+      </div>
+      <div class="form-field">
+        <label>Product</label>
+        <input id="newProduct" type="text" placeholder="e.g. 50x Blue Widgets" />
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="form-field">
+        <label>Note (optional)</label>
+        <input id="newNote" type="text" placeholder="Any extra info..." />
+      </div>
+    </div>
+    <button class="btn-add" onclick="addSupplier()">ADD TO VAULT</button>
+  </div>
+
+  <!-- Supplier List -->
+  <div class="table-header">
+    <h2>ACTIVE SUPPLIERS</h2>
+    <span class="count-badge" id="countBadge">0 on hold</span>
+  </div>
+
+  <div class="search-admin">
+    <input id="adminSearch" type="text" placeholder="Filter by name..." oninput="renderList()" />
+  </div>
+
+  <div id="supplierList"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────
+  let adminToken   = sessionStorage.getItem('vaultToken') || null;
+  let suppliers    = [];      // array of supplier objects from server
+  let confirmingId = null;    // id of row waiting for confirm-delete
+
+  // ── Boot ───────────────────────────────────────────────────────
+  if (adminToken) {
+    showAdmin();
+    loadSuppliers();
+  }
+
+  // ── Login / Logout ─────────────────────────────────────────────
+  document.getElementById('passwordInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogin() {
+    const password = document.getElementById('passwordInput').value;
+    const errEl    = document.getElementById('loginError');
+    errEl.textContent = '';
+
+    try {
+      const res  = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errEl.textContent = '⚠ Wrong password';
+        document.getElementById('passwordInput').value = '';
+        return;
+      }
+
+      adminToken = data.token;
+      sessionStorage.setItem('vaultToken', adminToken);
+      showAdmin();
+      loadSuppliers();
+    } catch {
+      errEl.textContent = '⚠ Connection error';
+    }
+  }
+
+  async function doLogout() {
+    await fetch('/api/logout', {
+      method: 'POST',
+      headers: { 'x-admin-token': adminToken }
+    }).catch(() => {});
+    adminToken = null;
+    sessionStorage.removeItem('vaultToken');
+    location.reload();
+  }
+
+  function showAdmin() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminUI').style.display     = 'block';
+  }
+
+  // ── Load suppliers ─────────────────────────────────────────────
+  async function loadSuppliers() {
+    try {
+      const res  = await fetch('/api/admin/suppliers', {
+        headers: { 'x-admin-token': adminToken }
+      });
+      if (res.status === 401) { doLogout(); return; }
+      suppliers = await res.json();
+      renderList();
+    } catch {
+      showToast('Failed to load suppliers');
+    }
+  }
+
+  // ── Render list ────────────────────────────────────────────────
+  function renderList() {
+    const filterText = document.getElementById('adminSearch').value.toLowerCase();
+    const list       = document.getElementById('supplierList');
+    const countEl    = document.getElementById('countBadge');
+
+    const filtered = suppliers.filter(s =>
+      s.name.toLowerCase().includes(filterText)
+    );
+
+    countEl.textContent = `${suppliers.length} on hold`;
+    list.innerHTML = '';
+
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty-state">No suppliers found.</div>`;
+      return;
+    }
+
+    filtered.forEach((s, i) => {
+      const row  = document.createElement('div');
+      row.className = 'supplier-row';
+      row.id = `row-${s.id}`;
+      row.style.animationDelay = `${i * 40}ms`;
+
+      const date = new Date(s.added_at).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric'
+      });
+
+      const isConfirming = confirmingId === s.id;
+      const btnLabel     = isConfirming ? 'CONFIRM?' : 'DELIVERED';
+      const btnClass     = isConfirming ? 'btn-deliver confirming' : 'btn-deliver';
+
+      row.innerHTML = `
+        <div class="info">
+          <div class="s-name">${escHtml(s.name)}</div>
+          <div class="s-product">⬡ ${escHtml(s.product)}</div>
+          ${s.note ? `<div class="s-note">${escHtml(s.note)}</div>` : ''}
+        </div>
+        <div class="s-date">${date}</div>
+        <button class="${btnClass}" onclick="handleDeliver(${s.id})">${btnLabel}</button>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  // ── Add supplier ───────────────────────────────────────────────
+  async function addSupplier() {
+    const name    = document.getElementById('newName').value.trim();
+    const product = document.getElementById('newProduct').value.trim();
+    const note    = document.getElementById('newNote').value.trim();
+
+    if (!name || !product) {
+      showToast('Name and product are required');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/suppliers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': adminToken
+        },
+        body: JSON.stringify({ name, product, note })
+      });
+
+      if (!res.ok) { showToast('Failed to add supplier'); return; }
+
+      document.getElementById('newName').value    = '';
+      document.getElementById('newProduct').value = '';
+      document.getElementById('newNote').value    = '';
+
+      showToast(`${name} added to vault`);
+      await loadSuppliers();
+    } catch {
+      showToast('Connection error');
+    }
+  }
+
+  // ── Deliver (delete) with confirm ──────────────────────────────
+  async function handleDeliver(id) {
+    if (confirmingId !== id) {
+      // First click: ask for confirmation
+      confirmingId = id;
+      renderList();
+
+      // Auto-reset confirm state after 3 seconds
+      setTimeout(() => {
+        if (confirmingId === id) {
+          confirmingId = null;
+          renderList();
+        }
+      }, 3000);
+      return;
+    }
+
+    // Second click: actually delete
+    confirmingId = null;
+
+    try {
+      const res = await fetch(`/api/admin/suppliers/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-token': adminToken }
+      });
+
+      if (!res.ok) { showToast('Failed to mark delivered'); return; }
+
+      const supplier = suppliers.find(s => s.id === id);
+      showToast(`${supplier?.name || 'Supplier'} marked delivered ✓`);
+      await loadSuppliers();
+    } catch {
+      showToast('Connection error');
+    }
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  // ── Escape HTML ────────────────────────────────────────────────
+  function escHtml(str) {
+    return String(str).replace(/[&<>"']/g, c =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
+    );
+  }
+</script>
+</body>
+</html>
